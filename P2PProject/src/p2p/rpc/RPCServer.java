@@ -2,20 +2,18 @@ package p2p.rpc;
 
 import p2p.core.Node;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class RPCServer extends Thread {
-    private Node node;
+    private Node node;             // Referencia al nodo que utiliza este servidor
     private ServerSocket serverSocket;
 
     public RPCServer(Node node) {
         this.node = node;
         try {
-            // Inicializa el ServerSocket aquí, en lugar de en el método run
-            this.serverSocket = new ServerSocket(0); // Usa un puerto disponible automáticamente
-            System.out.println("Node " + node.getId() + " listening on port " + this.serverSocket.getLocalPort());
+            this.serverSocket = new ServerSocket(0); // Inicia el servidor en un puerto disponible automáticamente
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -23,11 +21,11 @@ public class RPCServer extends Thread {
 
     @Override
     public void run() {
+        System.out.println("Servidor RPC del nodo " + node.getId() + " escuchando en el puerto " + serverSocket.getLocalPort());
         try {
-            // Mueve el mensaje de impresión aquí para evitar problemas de sincronización
             while (true) {
-                Socket clientSocket = serverSocket.accept();
-                new RPCHandler(clientSocket, node).start();
+                Socket clientSocket = serverSocket.accept();  // Acepta conexiones de otros nodos
+                new RPCHandler(clientSocket, node).start();    // Maneja cada solicitud en un hilo separado
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -35,6 +33,14 @@ public class RPCServer extends Thread {
     }
 
     public int getPort() {
-        return serverSocket.getLocalPort();
+        return serverSocket.getLocalPort(); // Devuelve el puerto en el que está escuchando el servidor
+    }
+
+    public void shutdown() {
+        try {
+            serverSocket.close();  // Detiene el servidor cerrando el socket
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

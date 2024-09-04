@@ -1,56 +1,30 @@
 package p2p.core;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
 import java.util.Scanner;
-import p2p.rpc.RPCClient;
 
 public class AdminPanel {
 
-    private List<Node> nodes;
-    private Scanner scanner;
-
-    public AdminPanel() {
-        this.nodes = new ArrayList<>();
-        this.scanner = new Scanner(System.in);
-    }
+    private static final String NODES_FILE = "active_nodes.txt"; // Archivo para almacenar los IDs de nodos
 
     public void start() {
-        System.out.println("Bienvenido al Panel de Administración de la Red P2P");
+        System.out.println("Bienvenido al Panel de Administración de la Red P2P (Solo Visualización)");
         String command;
+        Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println("\nComandos disponibles:");
-            System.out.println("1. add_node <ID> - Agregar un nuevo nodo");
-            System.out.println("2. list_nodes - Listar todos los nodos");
-            System.out.println("3. put <nodeID> <key> <value> - Almacenar un valor en un nodo");
-            System.out.println("4. get <nodeID> <key> - Recuperar un valor de un nodo");
-            System.out.println("5. exit - Salir del panel de administración");
+            System.out.println("1. list_nodes - Listar todos los nodos");
+            System.out.println("2. exit - Salir del panel de administración");
 
             System.out.print("\nIngresa un comando: ");
             command = scanner.nextLine().trim();
 
-            if (command.startsWith("add_node")) {
-                String[] parts = command.split(" ");
-                if (parts.length == 2) {
-                    addNode(parts[1]);
-                } else {
-                    System.out.println("Uso incorrecto del comando add_node. Uso correcto: add_node <ID>");
-                }
-            } else if (command.equals("list_nodes")) {
-                listNodes();
-            } else if (command.startsWith("put")) {
-                String[] parts = command.split(" ");
-                if (parts.length == 4) {
-                    putValue(parts[1], parts[2], parts[3]);
-                } else {
-                    System.out.println("Uso incorrecto del comando put. Uso correcto: put <nodeID> <key> <value>");
-                }
-            } else if (command.startsWith("get")) {
-                String[] parts = command.split(" ");
-                if (parts.length == 3) {
-                    getValue(parts[1], parts[2]);
-                } else {
-                    System.out.println("Uso incorrecto del comando get. Uso correcto: get <nodeID> <key>");
+            if (command.equals("list_nodes")) {
+                try {
+                    listNodes();
+                } catch (IOException e) {
+                    System.out.println("Error al leer la lista de nodos: " + e.getMessage());
                 }
             } else if (command.equals("exit")) {
                 System.out.println("Saliendo del panel de administración...");
@@ -59,60 +33,28 @@ public class AdminPanel {
                 System.out.println("Comando no reconocido. Intenta nuevamente.");
             }
         }
+        scanner.close();
     }
 
-    private void addNode(String nodeId) {
-
-        if (getNodeById(nodeId) != null) {
-            System.out.println("El nodo " + nodeId + " ya existe.");
+    // Método para listar los nodos activos desde el archivo
+    private void listNodes() throws IOException {
+        File file = new File(NODES_FILE);
+        if (!file.exists()) {
+            System.out.println("No hay nodos activos en la red.");
             return;
         }
-        
-        Node node = new Node(nodeId);
-        node.start();
-        nodes.add(node);
-        System.out.println("Nodo " + nodeId + " agregado y escuchando en el puerto " + node.getRpcServer().getPort());
+
+        Scanner fileScanner = new Scanner(file);
+        System.out.println("Nodos activos en la red:");
+        while (fileScanner.hasNextLine()) {
+            String nodeId = fileScanner.nextLine();
+            System.out.println("Nodo ID: " + nodeId);
+        }
+        fileScanner.close();
     }
 
-    private void listNodes() {
-        if (nodes.isEmpty()) {
-            System.out.println("No hay nodos en la red.");
-        } else {
-            System.out.println("Nodos en la red:");
-            for (Node node : nodes) {
-                System.out.println("ID: " + node.getId() + ", Puerto: " + node.getRpcServer().getPort());
-            }
-        }
-    }
-
-    private void putValue(String nodeId, String key, String value) {
-        Node node = getNodeById(nodeId);
-        if (node != null) {
-            RPCClient rpcClient = new RPCClient();
-            String response = rpcClient.sendRequest("localhost", node.getRpcServer().getPort(), "PUT " + key + " " + value);
-            System.out.println("Respuesta del nodo: " + response);
-        } else {
-            System.out.println("Nodo " + nodeId + " no encontrado.");
-        }
-    }
-
-    private void getValue(String nodeId, String key) {
-        Node node = getNodeById(nodeId);
-        if (node != null) {
-            RPCClient rpcClient = new RPCClient();
-            String response = rpcClient.sendRequest("localhost", node.getRpcServer().getPort(), "GET " + key);
-            System.out.println("Respuesta del nodo: " + response);
-        } else {
-            System.out.println("Nodo " + nodeId + " no encontrado.");
-        }
-    }
-
-    private Node getNodeById(String nodeId) {
-        for (Node node : nodes) {
-            if (node.getId().equals(nodeId)) {
-                return node;
-            }
-        }
-        return null;
+    public static void main(String[] args) {
+        AdminPanel adminPanel = new AdminPanel();
+        adminPanel.start();
     }
 }
