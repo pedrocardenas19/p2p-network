@@ -1,0 +1,6 @@
+{
+    "java.project.sourcePaths": [
+        "P2PProject/src",
+        "P2PProject/p2p-network/src/main/java/com/example/p2pnetwork"
+    ]
+}
